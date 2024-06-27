@@ -1,7 +1,7 @@
 import pygame
 from settings import *
 import random
-
+import time
 #Livello 1 -> 56
 #Livello 2 -> 40
 #Livello 3 -> 20
@@ -66,29 +66,76 @@ def draw_snake():
     for i in range (len(snake_pos)):
         x=snake_pos[i][1]*square_width+20+4
         y=snake_pos[i][0]*square_width+20+4
-        pygame.draw.rect(screen, RED, (x, y, square_width-8, square_width-8))
+        pygame.draw.rect(screen, GREEN, (x, y, square_width-8, square_width-8))
         status_grid[snake_pos[i][0]][snake_pos[i][1]]=1
 
 def move():
     match direction:
         case 0:
-            snake_pos.append( (snake_pos[-1][0]-1, snake_pos[-1][1]) )
-            snake_pos.pop(0)
+            valid=check_valid_mnove(snake_pos[-1][0]-1, snake_pos[-1][1])
+            if valid:
+                snake_pos.append( (snake_pos[-1][0]-1, snake_pos[-1][1]) )
+            else:
+                end(False)
         case 1:
-            snake_pos.append( (snake_pos[-1][0], snake_pos[-1][1]+1) )
-            snake_pos.pop(0)
+            valid=check_valid_mnove(snake_pos[-1][0], snake_pos[-1][1]+1)
+            if valid:
+                snake_pos.append( (snake_pos[-1][0], snake_pos[-1][1]+1) )
+            else:
+                end(False)
         case 2:
-            snake_pos.append( (snake_pos[-1][0]+1, snake_pos[-1][1]) )
-            snake_pos.pop(0)
+            valid=check_valid_mnove(snake_pos[-1][0]+1, snake_pos[-1][1])
+            if valid:
+                snake_pos.append( (snake_pos[-1][0]+1, snake_pos[-1][1]) )
+            else:
+                end(False)
         case 3:
-            snake_pos.append( (snake_pos[-1][0], snake_pos[-1][1]-1) )
-            snake_pos.pop(0)
+            valid=check_valid_mnove(snake_pos[-1][0], snake_pos[-1][1]-1)
+            if valid:
+                snake_pos.append( (snake_pos[-1][0], snake_pos[-1][1]-1) )
+            else:
+                end(False)
+
+    x=snake_pos[0][1]*square_width+20+4
+    y=snake_pos[0][0]*square_width+20+4
+    pygame.draw.rect(screen, BACKGROUND_COLOR, (x, y, square_width-8, square_width-8))
+
+    if((snake_pos[-1][0],snake_pos[-1][1]) in foods):
+        print("snake mangia food")
+        new_food()
+        foods.remove((snake_pos[-1][0],snake_pos[-1][1]))
+    elif(valid):
+        snake_pos.pop(0)
+
+    if(len(snake_pos)==(560//square_width)**2):
+        end(True)
     draw_snake()
 
 def new_food():
-    
     row=random.randint(0,560//square_width-1)
     col=random.randint(0,560//square_width-1)
+    while((row,col) in snake_pos):
+        row=random.randint(0,560//square_width-1)
+        col=random.randint(0,560//square_width-1)   
+    x=col*square_width+20+4
+    y=row*square_width+20+4
+    pygame.draw.rect(screen, RED, (x, y, square_width-8, square_width-8))
+    foods.append((row,col))
+
+def check_valid_mnove(row,col):
+    if(row<0 or col<0 or row>=560//square_width or col>=560//square_width or (row, col) in snake_pos):
+        return(False)
+    return True
+
+def end(bool):
+    global game_started
+    global game_ended
+    game_started=False
+    game_ended=True
+    if bool:
+        print("vinto")
+    else:
+        print("Perso")
 
 
 
@@ -105,15 +152,20 @@ if __name__ == '__main__':
 
     selected=-1
     select_game=-1
-    square_width=56
-    direction=3
-    snake_pos=[(0,2),(0,3)]
+    square_width=280
+    direction=-1
+    game_started=False
+    game_ended=False
+    snake_pos=[(0,0)]
+    foods=[]
     status_grid=gen_grid()
 
     draw_backgound()
     buttons=gen_buttons()
     draw_buttons()
     draw_snake()
+    new_food()
+
     # print(status_grid)
 
 
@@ -124,7 +176,10 @@ if __name__ == '__main__':
     run  = True
     selected_cell=(-1,-1)
     while run:
-
+        if(game_started):
+            time.sleep(0.5)
+            move()
+            
         for event in pygame.event.get():
             if (event.type == pygame.QUIT or (event.type==pygame.KEYDOWN and event.key==pygame.K_ESCAPE)):
                 run = False
@@ -144,18 +199,23 @@ if __name__ == '__main__':
                 draw_buttons()
             if (event.type == pygame.KEYDOWN):
                 # up->0, right->1, down->2 left->3
+                if not(game_started) and not(game_ended):
+                    game_started=True
+
                 if(event.key == pygame.K_UP):
-                    direction=0
-                    move()
+                    if direction!=2:
+                        direction=0
                 elif(event.key == pygame.K_RIGHT):
-                    direction=1
-                    move()
+                    if direction!=3:
+                        direction=1
                 elif(event.key == pygame.K_DOWN):
-                    direction=2
-                    move()
+                    if direction!=0:
+                        direction=2
                 elif(event.key == pygame.K_LEFT):
-                    direction=3
-                    move()
+                    if direction!=1:
+                        direction=3
+                    
+        
         
 
         pygame.display.flip()
