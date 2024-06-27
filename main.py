@@ -22,8 +22,6 @@ def gen_grid():
         status_grid.append(temp)
     return(status_grid)
 
-
-
 def gen_buttons():
     x,y,w,h=640,20,100,30
     buttons=[]
@@ -63,13 +61,18 @@ def get_square_width(i):
 
 def draw_snake():
     print(snake_pos)
-    for i in range (len(snake_pos)):
+    for i in range (len(snake_pos)-1, -1, -1):
+        if len(snake_pos)-1-i<len(COLORS):
+            color=COLORS[len(snake_pos)-1-i]
+        else:
+            color=GREEN
         x=snake_pos[i][1]*square_width+20+4
         y=snake_pos[i][0]*square_width+20+4
-        pygame.draw.rect(screen, GREEN, (x, y, square_width-8, square_width-8))
+        pygame.draw.rect(screen, color, (x, y, square_width-8, square_width-8))
         status_grid[snake_pos[i][0]][snake_pos[i][1]]=1
 
 def move():
+    global points_count
     match direction:
         case 0:
             valid=check_valid_mnove(snake_pos[-1][0]-1, snake_pos[-1][1])
@@ -100,15 +103,19 @@ def move():
     y=snake_pos[0][0]*square_width+20+4
     pygame.draw.rect(screen, BACKGROUND_COLOR, (x, y, square_width-8, square_width-8))
 
-    if((snake_pos[-1][0],snake_pos[-1][1]) in foods):
+    if(len(snake_pos)==(560//square_width)**2):
+        end(True)
+
+    elif((snake_pos[-1][0],snake_pos[-1][1]) in foods):
         print("snake mangia food")
         new_food()
         foods.remove((snake_pos[-1][0],snake_pos[-1][1]))
+        points_count+=1
+        set_points_counter()
     elif(valid):
         snake_pos.pop(0)
 
-    if(len(snake_pos)==(560//square_width)**2):
-        end(True)
+    
     draw_snake()
 
 def new_food():
@@ -132,13 +139,28 @@ def end(bool):
     global game_ended
     game_started=False
     game_ended=True
+
+
+    font = pygame.font.SysFont('arial', 30)
+    pygame.draw.rect(screen, BACKGROUND_COLOR, (640,500,100,50))
+
     if bool:
-        print("vinto")
+        text="Win"
     else:
-        print("Perso")
+        text="Lost"
 
+    text=font.render(text, True, RED)
+    screen.blit(text, (650,500))
 
-
+def set_points_counter():
+    font = pygame.font.SysFont('arial', 30)
+    pygame.draw.rect(screen, BLACK, (640,160,100,100))
+    pygame.draw.rect(screen, RED, (690,170,30,30))
+    text=font.render(str(points_count), True, WHITE)
+    if(points_count>9):
+        screen.blit(text, (650,168))
+    else:
+        screen.blit(text, (666,168))
 
 
 
@@ -152,32 +174,25 @@ if __name__ == '__main__':
 
     selected=-1
     select_game=-1
-    square_width=280
+    square_width=560
     direction=-1
     game_started=False
     game_ended=False
-    snake_pos=[(0,0)]
-    foods=[]
-    status_grid=gen_grid()
+    points_count=0
+    
 
     draw_backgound()
     buttons=gen_buttons()
     draw_buttons()
-    draw_snake()
-    new_food()
 
     # print(status_grid)
-
-
-
-
 
 
     run  = True
     selected_cell=(-1,-1)
     while run:
         if(game_started):
-            time.sleep(0.5)
+            time.sleep(0.2)
             move()
             
         for event in pygame.event.get():
@@ -190,16 +205,28 @@ if __name__ == '__main__':
                         if(i<len(buttons)):
                             selected=i
                             print("Cella selezionate: "+str(selected))
+                            pygame.draw.rect(screen, BACKGROUND_COLOR, (640,500,100,50))
                             square_width=get_square_width(i)
+                            snake_pos=[(0,0),(0,1),(0,2)]
+                            foods=[]
+                            direction=-1
+                            game_started=False
+                            game_ended=False
+                            points_count=0
+                            status_grid=gen_grid()
                             draw_backgound()
                             draw_buttons()
+                            draw_snake()
+                            for i in range(5):
+                                new_food()
+                            set_points_counter()
                             break
                 else:
                     selected=-1
                 draw_buttons()
             if (event.type == pygame.KEYDOWN):
                 # up->0, right->1, down->2 left->3
-                if not(game_started) and not(game_ended):
+                if not(game_started) and not(game_ended) and selected!=-1:
                     game_started=True
 
                 if(event.key == pygame.K_UP):
@@ -213,11 +240,8 @@ if __name__ == '__main__':
                         direction=2
                 elif(event.key == pygame.K_LEFT):
                     if direction!=1:
-                        direction=3
-                    
+                        direction=3   
         
-        
-
         pygame.display.flip()
         clock.tick(30)
         
